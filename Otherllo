@@ -1,0 +1,271 @@
+#include <string>
+#include <iostream>
+#include <cstdlib>
+#include <stdio.h>
+#include <conio.h>
+#include <stdlib.h>
+
+#define BOARD_WIDTH 8
+#define BOARD_HEIGHT 8
+
+using namespace std;
+
+enum {
+	COLOR_NONE = -1,
+	COLOR_BLACK = 0,
+	COLOR_WHITE = 1,
+	COLOR_MAX
+};
+
+enum
+{
+	DIRECTION_UP,
+	DIRECTION_UP_LEFT,
+	DIRECTION_LEFT,
+	DIRECTION_DOWN_LEFT,
+	DIRECTION_DOWN,
+	DIRECTION_DOWN_RIGHT,
+	DIRECTION_RIGHT,
+	DIRECTION_UP_RIGHT,
+	DIRECTION_MAX
+};
+
+int directions[][2] =
+{
+	{0,-1},//DIRECTION_UP,
+	{-1,-1},//DIRECTION_UP_LEFT,
+	{-1,0},	//DIRECTION_LEFT,
+	{-1,1},//DIRECTION_DOWN_LEFT,
+	{0,1},//DIRECTION_DOWN,
+	{1,1},//DIRECTION_DOWN_RIGHT,
+	{1,0},//DIRECTION_RIGHT,
+	{1,-1},//DIRECTION_UP_RIGHT,
+};
+
+char colorNames[][5 + 1] =
+{
+	"Black",//COLOR_BLACK
+	"White"//COLOR_WHITE
+
+};
+
+int cells[BOARD_HEIGHT][BOARD_WIDTH];
+
+int cursorX, cursorY;
+int turn;
+bool canPut = true;
+bool checkCanPut(int _Nowcolor, int _x, int _y, bool _turnOver)
+{
+	if (cells[_y][_x] != COLOR_NONE)
+		return false;
+
+	for (int i = 0; i < DIRECTION_MAX; i++)
+	{
+		int x = _x;
+		int y = _y;
+		x += directions[i][0];
+		y += directions[i][1];
+
+		//0なら１　１なら0
+		if (cells[y][x] != (_Nowcolor ^ 1))
+			continue;
+
+		while (1)
+		{
+			x += directions[i][0];
+			y += directions[i][1];
+
+			if (x < 0 || x >= BOARD_WIDTH || y < 0 || y >= BOARD_HEIGHT)
+				break;
+			if (cells[y][x] == COLOR_NONE)
+				break;
+			if (cells[y][x] == _Nowcolor)
+			{
+				if (!_turnOver)
+					return true;
+				else
+				{
+					int x2 = _x;
+					int y2 = _y;
+
+					while (1)
+					{
+						cells[y2][x2] = _Nowcolor;
+
+						x2 += directions[i][0];
+						y2 += directions[i][1];
+
+						if ((x2 == x) && (y2 == y))
+						{
+							break;
+						}
+					}
+				}
+			}
+		}
+	}
+	return false;
+}
+
+bool CheckCanPutAll(int _nowColor)
+{
+	for (int y = 0; y < BOARD_HEIGHT; y++)
+	{
+		for (int x = 0; x < BOARD_WIDTH; x++)
+		{
+			if (checkCanPut(_nowColor, x, y, false))
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+void DrawBoard()
+{
+	system("cls");
+
+	for (int y = 0; y < BOARD_HEIGHT; y++)
+	{
+		for (int x = 0; x < BOARD_WIDTH; x++)
+		{
+			if ((x == cursorX) && (y == cursorY))
+				cout << "◎";
+			else
+			{
+				switch (cells[y][x])
+				{
+				case COLOR_NONE:
+					cout << "・";
+					break;
+				case COLOR_BLACK:
+					cout << "●";
+					break;
+				case COLOR_WHITE:
+					cout << "○";
+					break;
+				}
+			}
+		}
+		cout << "\n";
+	}
+}
+void InitBoard()
+{
+	for (int y = 0; y < BOARD_HEIGHT; y++)
+	{
+		for (int x = 0; x < BOARD_WIDTH; x++)
+		{
+			cells[y][x] = COLOR_NONE;
+		}
+	}
+	cells[3][3] = COLOR_WHITE;
+	cells[4][4] = COLOR_WHITE;
+	cells[4][3] = COLOR_BLACK;
+	cells[3][4] = COLOR_BLACK;
+}
+
+void DrawScore(bool gameSet)
+{
+	int count[COLOR_MAX] = { 0 };
+
+	for (int y = 0; y < BOARD_HEIGHT; y++)
+	{
+		for (int x = 0; x < BOARD_WIDTH; x++)
+		{
+			if (cells[y][x] != COLOR_NONE)
+				count[cells[y][x]]++;
+		}
+	}
+
+
+
+	for (int i = 0; i < COLOR_MAX; i++)
+	{
+		cout << "" << colorNames[i] << count[i] << "\n";
+	}
+	if (gameSet)
+	{
+		if (count[COLOR_BLACK] == count[COLOR_WHITE])
+			cout << "DRAW!!\n";
+		else if (count[COLOR_BLACK] > count[COLOR_WHITE])
+			cout << "Black Win!!\n";
+		else if (count[COLOR_BLACK] < count[COLOR_WHITE])
+			cout << "White Win!!\n";
+	}
+	else
+	{
+		if (canPut)
+			cout << "This is " << colorNames[turn] << " Turn\n";
+		else
+			cout << "Can't Put\n";
+	}
+}
+
+void InputBoard()
+{
+	canPut = true;
+	switch (_getch())
+	{
+	case 'w':
+		if (cursorY > 0)
+			cursorY--;
+		break;
+	case 's':
+		if (cursorY < BOARD_HEIGHT - 1)
+			cursorY++;
+		break;
+	case 'a':
+		if (cursorX > 0)
+			cursorX--;
+		break;
+	case 'd':
+		if (cursorX < BOARD_WIDTH - 1)
+			cursorX++;
+		break;
+	default:
+		if (!checkCanPut(turn, cursorX, cursorY, false))
+		{
+			canPut = false;
+			break;
+		}
+		else
+			canPut = true;
+
+		checkCanPut(turn, cursorX, cursorY, true);
+
+		cells[cursorY][cursorX] = turn;
+		turn ^= 1;
+
+		if (!CheckCanPutAll(turn))
+			turn ^= 1;
+
+		break;
+	}
+}
+int main()
+{
+	InitBoard();
+
+	while (1)
+	{
+		DrawBoard();
+
+		DrawScore(false);
+
+		InputBoard();
+
+		if ((!CheckCanPutAll(COLOR_BLACK)) && (!CheckCanPutAll(COLOR_WHITE)))
+		{
+			DrawBoard();
+
+			DrawScore(true);
+
+			cout << "Game Set!\n";
+
+			break;
+		}
+	}
+}
